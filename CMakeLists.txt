@@ -13,3 +13,6 @@ include_directories(src ${Boost_INCLUDE_DIR})
 
 add_executable(level1 src/level1.cc)
 target_compile_features(level1 PRIVATE cxx_std_17)
+
+add_executable(level2 src/level2.cc)
+target_compile_features(level2 PRIVATE cxx_std_17)
