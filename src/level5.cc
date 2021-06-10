@@ -9,7 +9,7 @@
 
 using Program = std::vector<unsigned>;
 
-unsigned run_program(Program program)
+unsigned run_program(Program program, unsigned input)
 {
     for (unsigned ip = 0;;)
     {
@@ -22,7 +22,6 @@ unsigned run_program(Program program)
         const auto cmd = s.substr(0, 2);
         bool p1_val = s.at(2) == '1';
         bool p2_val = s.at(3) == '1';
-        // bool p3_val = s.at(4) == '1';
 
         auto get_param = [&program](size_t _ip, bool is_val) {
             auto val = program.at(_ip);
@@ -44,11 +43,31 @@ unsigned run_program(Program program)
             ip += 4;
         } else if (cmd == "30") {
             auto& res = program.at(program.at(ip + 1));
-            res = 1;
+            res = input;
             ip += 2;
         } else if (cmd == "40") {
             std::cout << "OUT: " << program.at(program.at(ip + 1)) << std::endl;
             ip += 2;
+        } else if (cmd == "50") { // jump-if-true
+            if (get_param(ip + 1, p1_val)) {
+                ip = get_param(ip + 2, p2_val);
+            } else {
+                ip += 3;
+            }
+        } else if (cmd == "60") { // jump-if-false
+            if (not get_param(ip + 1, p1_val)) {
+                ip = get_param(ip + 2, p2_val);
+            } else {
+                ip += 3;
+            }
+        } else if (cmd == "70") { // less-than
+            auto& res = program.at(program.at(ip + 3));
+            res = get_param(ip + 1, p1_val) < get_param(ip + 2, p2_val);
+            ip += 4;
+        } else if (cmd == "80") { // equals
+            auto& res = program.at(program.at(ip + 3));
+            res = get_param(ip + 1, p1_val) == get_param(ip + 2, p2_val);
+            ip += 4;
         } else {
             std::cerr << "UNKNOWN CMD " << program.at(ip) << " AT " << ip << std::endl;
             exit(1);
@@ -76,10 +95,11 @@ int main(int argc, char* argv[])
         }
     }
 
-    {
-        Program p1 = program;
-        run_program(p1);
-    }
+    Program p1 = program;
+    run_program(p1, 1);
+
+    Program p2 = program;
+    run_program(p2, 5);
 
     return 0;
 }
