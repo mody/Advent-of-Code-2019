@@ -2,16 +2,33 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include <algorithm>
+#include <array>
 #include <iostream>
 #include <string>
 #include <vector>
 
 using Program = std::vector<int64_t>;
-using IO = std::list<unsigned>;
+using IO = std::list<int64_t>;
+using Phases = std::array<unsigned, 5>;
 
-IO run_program(Program program, IO io)
+enum class Ret : int {
+    EXIT = 1,
+    INPUT = 2,
+    OUTPUT = 3,
+};
+
+struct Unit {
+    Program program;
+    unsigned ip = 0;
+    IO io;
+
+    Ret run();
+};
+
+
+Ret Unit::run()
 {
-    for (unsigned ip = 0;;)
+    for (;;)
     {
         auto s = std::to_string(program.at(ip));
         std::reverse(std::begin(s), std::end(s));
@@ -23,7 +40,7 @@ IO run_program(Program program, IO io)
         bool p1_val = s.at(2) == '1';
         bool p2_val = s.at(3) == '1';
 
-        auto get_param = [&program](size_t _ip, bool is_val) {
+        auto get_param = [this](size_t _ip, bool is_val) {
             auto val = program.at(_ip);
             if (is_val) {
                 return val;
@@ -42,6 +59,9 @@ IO run_program(Program program, IO io)
             res = get_param(ip + 1, p1_val) * get_param(ip + 2, p2_val);
             ip += 4;
         } else if (cmd == "30") {
+            if (io.empty()) {
+                return Ret::INPUT;
+            }
             auto& res = program.at(program.at(ip + 1));
             res = io.back();
             io.pop_back();
@@ -49,6 +69,7 @@ IO run_program(Program program, IO io)
         } else if (cmd == "40") {
             io.push_front(program.at(program.at(ip + 1)));
             ip += 2;
+            return Ret::OUTPUT;
         } else if (cmd == "50") { // jump-if-true
             if (get_param(ip + 1, p1_val)) {
                 ip = get_param(ip + 2, p2_val);
@@ -74,7 +95,59 @@ IO run_program(Program program, IO io)
             exit(1);
         }
     }
-    return io;
+    return Ret::EXIT;
+}
+
+void run_unit(Unit const& unit, Phases phases)
+{
+    int64_t max_output = 0;
+    Phases max_phases;
+
+    do {
+        std::vector<Unit> units = {unit, unit, unit, unit, unit};
+        assert(phases.size() == units.size());
+
+        // init all with phase setting
+        for (size_t i = 0; i < phases.size(); ++i) {
+            auto& u = units.at(i);
+            u.io.push_back(phases.at(i));
+            auto r = u.run();
+            assert(r == Ret::INPUT);
+        }
+
+        int64_t last_output = 0;
+        for (size_t i = 0; i < units.size(); ) {
+            auto& u = units.at(i);
+            u.io.push_back(last_output);
+
+            auto r = u.run();
+
+            if (r == Ret::OUTPUT) {
+                assert(u.io.size() == 1);
+                last_output = u.io.front();
+                u.io.pop_front();
+            } else if (r == Ret::EXIT) {
+                assert(u.io.size() == 1);
+                last_output = u.io.front();
+                u.io.pop_front();
+                break;
+            }
+
+            if (++i == units.size()) {
+                i = 0;
+            }
+        }
+
+        if (last_output > max_output) {
+            max_output = last_output;
+            max_phases = phases;
+        }
+    } while (std::next_permutation(phases.begin(), phases.end()));
+
+    for (auto const& p : max_phases) {
+        std::cout << p << ", ";
+    };
+    std::cout << " with " << max_output << " output\n";
 }
 
 int main(int argc, char* argv[])
@@ -87,40 +160,19 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    Program program;
+    Unit unit;
     {
         std::vector<std::string> s;
         boost::algorithm::split(s, line, boost::algorithm::is_any_of(","));
         for (auto const& v : s) {
-            program.push_back(std::stoi(v));
+            unit.program.push_back(std::stoi(v));
         }
     }
 
-    unsigned max_output = 0;
-    std::vector<unsigned> max_phases;
-
-    std::vector<unsigned> phases {0, 1, 2, 3, 4};
-    do {
-        IO io;
-        unsigned last_output = 0;
-        for (auto const& phase : phases) {
-            io.push_front(phase);
-            io.push_front(last_output);
-            io = run_program(program, std::move(io));
-            assert(io.size() == 1);
-            last_output = io.front();
-            io.clear();
-        }
-        if (last_output > max_output) {
-            max_output = last_output;
-            max_phases = phases;
-        }
-    } while(std::next_permutation(phases.begin(), phases.end()));
-
-    for (auto const& p : max_phases) {
-        std::cout << p << ", ";
-    };
-    std::cout << " with " << max_output << " output\n";
+    std::cout << "1: ";
+    run_unit(unit, {0, 1, 2, 3, 4});
+    std::cout << "2: ";
+    run_unit(unit, {5, 6, 7, 8, 9});
 
     return 0;
 }
