@@ -46,5 +46,26 @@ int main()
 
     std::cout << "1: " << best_layer.at('1')*best_layer.at('2') << "\n";
 
+    std::string final_layer(LAYER_SIZE, ' ');
+
+    for (unsigned i = 0; i < LAYER_SIZE; ++i) {
+        unsigned char c = ' ';
+        for (auto const& layer : layers) {
+            if (layer.at(i) == '2') {
+                continue;
+            }
+            c = layer.at(i);
+            break;
+        }
+        if (c == '1') { // don't store black, only white
+            final_layer.at(i) = c;
+        }
+    }
+
+    std::cout << "2:\n";
+    for (unsigned i = 0; i < LAYER_SIZE; i += WIDTH) {
+        std::cout << final_layer.substr(i, WIDTH) << "\n";
+    }
+
     return 0;
 }
