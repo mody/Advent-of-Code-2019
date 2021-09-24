@@ -182,6 +182,37 @@ Ret Unit::run()
     }
 }
 
+int64_t run_part1(Unit unit) {
+    unit.io.push_back(1);  // test run
+    for (;;) {
+        auto res = unit.run();
+        if (res == Ret::EXIT) {
+            break;
+        } else if (res == Ret::OUTPUT) {
+            std::cout << unit.io.front() << ",";
+            unit.io.pop_front();
+        } else {
+            assert(false);
+        }
+    }
+    return unit.io.front();
+}
+
+int64_t run_part2(Unit unit) {
+    unit.io.push_back(2);  // test run
+    for (;;) {
+        auto res = unit.run();
+        if (res == Ret::EXIT) {
+            break;
+        } else if (res == Ret::OUTPUT) {
+            std::cout << unit.io.front() << ",";
+            unit.io.pop_front();
+        } else {
+            assert(false);
+        }
+    }
+    return unit.io.front();
+}
 
 int main(int argc, char* argv[])
 {
@@ -203,24 +234,13 @@ int main(int argc, char* argv[])
         }
     }
 
-    unit.io.push_back(1);  // test run
-    for (;;) {
-        auto res = unit.run();
-        if (res == Ret::EXIT) {
-            break;
-        } else if (res == Ret::OUTPUT) {
-            std::cout << unit.io.front() << ",";
-            unit.io.pop_front();
-        } else {
-            assert(false);
-        }
-    }
-
-    std::cout << "\n\n1: ";
+    std::cout << "1: " << run_part1(unit) << "\n";
     for (const auto x : unit.io) {
         std::cout << x << ",";
     }
     std::cout << "\n";
+
+    std::cout << "2: " << run_part2(unit) << "\n";
 
     return 0;
 }
