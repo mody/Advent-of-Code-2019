@@ -1,15 +1,16 @@
 #include <boost/container_hash/hash.hpp>
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-constexpr unsigned A = 100;
-constexpr unsigned B = A/2;
+constexpr long A = 20;
+constexpr long B = A/2;
 
 struct Point {
-    long x = -1, y = -1;
+    long x = -1, y = -1, dist = -1;
 
     Point() = default;
     Point(long x_, long y_)
@@ -18,12 +19,13 @@ struct Point {
     { }
 
     bool operator==(Point const& o) const noexcept { return x == o.x && y == o.y; }
+
+    bool operator< (Point const& o) const noexcept { return dist < o.dist; }
 };
 
-Point operator+(Point lhs, Point const& rhs) noexcept {
-    lhs.x += rhs.x;
-    lhs.y += rhs.y;
-    return lhs;
+Point make_point(long x, long y)
+{
+    return Point {x * A + B, y * A + B};
 }
 
 namespace std {
@@ -49,9 +51,38 @@ std::ostream& operator<<(std::ostream& os, Point const& p) {
 }  // namespace std
 
 
-using World = std::unordered_set<Point>;
 using Line = std::deque<Point>;
 using PointSet = std::unordered_set<Point>;
+
+class World : public std::unordered_set<Point>
+{
+    long m_max_x = 0, m_max_y = 0;
+public:
+    using std::unordered_set<Point>::unordered_set;
+
+    void set_max_x(long x) { m_max_x = x; }
+    void set_max_y(long y) { m_max_y = y; }
+
+    long get_max_x() const { return m_max_x; }
+    long get_max_y() const { return m_max_y; }
+
+    void dump(PointSet const& px = {}) const {
+        for (long y = 0; y < m_max_y; ++y) {
+            for (long x = 0; x < m_max_x; ++x) {
+                const Point p{make_point(x, y)};
+                if (px.count(p)) {
+                    std::cout << "X";
+                } else if (count(p)) {
+                    std::cout << "#";
+                } else {
+                    std::cout << ".";
+                }
+            }
+            std::cout << "\n";
+        }
+        std::cout << "\n";
+    }
+};
 
 Line plotLine(Point p1, Point const& p2)
 {
@@ -77,23 +108,7 @@ Line plotLine(Point p1, Point const& p2)
     return l;
 }
 
-int main()
-{
-    World world;
-
-    std::string line;
-    long y = 0;
-    while(std::getline(std::cin, line)) {
-        long x = 0;
-        for (const char& c : line) {
-            if (c == '#') {
-                world.insert({x*A+B, y*A+B});
-            }
-            ++x;
-        }
-        ++y;
-    }
-
+Point part1(World world) {
     PointSet top_visible;
     Point top;
 
@@ -117,6 +132,67 @@ int main()
     }
 
     std::cout << "top: " << top << ", count: " << top_visible.size() << "\n";
+    return top;
+}
+
+Point part2(World world, const Point top) {
+    std::map<long, Line> m;
+
+    for (auto p : world) {
+        long dx = top.x - p.x;
+        long dy = top.y - p.y;
+        if (dx == 0 && dy == 0) { continue; }
+        // p.dist = std::abs(dx) + std::abs(dy);
+        p.dist = std::sqrt(dx * dx + dy * dy);
+        double angle = -std::atan2(dx, dy);
+        if (angle < 0) {
+            angle = 2*3.141592654 + angle;
+        }
+        long k = static_cast<long>(1000*angle);
+
+        m[k].push_back(std::move(p));
+    }
+    for (auto& [k, l] : m) {
+        std::sort(l.begin(), l.end());
+    }
+
+    for (unsigned i = 0; !world.empty(); ) {
+        for (auto& [k, l] : m) {
+            if (l.empty()) continue;
+            Point p{l.front()};
+            world.erase(p);
+            l.pop_front();
+            // std::cout << ++i << " - " << p << "\n";
+            if (++i == 200) {
+                return p;
+            }
+        }
+    }
+    return {};
+}
+
+int main()
+{
+    World world;
+
+    std::string line;
+    long y = 0, x = 0;
+    while(std::getline(std::cin, line)) {
+        x = 0;
+        for (const char& c : line) {
+            if (c == '#') {
+                world.insert(make_point(x, y));
+            }
+            ++x;
+        }
+        ++y;
+    }
+    world.set_max_x(x);
+    world.set_max_y(y);
+
+    Point top = part1(world);
+    Point p200 = part2(world, top);
+    std::cout << "p200: " << ((p200.x-B)/A)*100+((p200.y-B)/A) << "\n";
 
     return 0;
 }
