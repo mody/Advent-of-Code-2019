@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 project(AOC2019)
 
-set(CMAKE_CXX_FLAGS "-Wall -std=c++17 -fno-omit-frame-pointer -ggdb3 -O0")
+set(CMAKE_CXX_FLAGS "-Wall -std=c++17 -fno-omit-frame-pointer -ggdb3 -O3")
 
 # find_package(PkgConfig)
 # pkg_check_modules(PC_RapidJSON QUIET RapidJSON)

@@ -272,6 +272,69 @@ int64_t run_part1(Unit unit) {
     return mapa.size();
 }
 
+void run_part2(Unit unit) {
+    Mapa mapa;
+
+    int dir = 0;
+    Point px {0, 0};
+    int outputs = 0;
+
+    mapa[px] = 1; // start on white
+
+    for (;;) {
+        auto res = unit.run();
+        if (res == Ret::EXIT) {
+            break;
+        } else if (res == Ret::INPUT) {
+            unit.io.push_front(mapa[px]);
+        } else if (res == Ret::OUTPUT) {
+            if (outputs == 0) {
+                mapa[px] = unit.io.front();
+                unit.io.pop_front();
+                outputs = 1;
+            } else if (outputs == 1) {
+                if (unit.io.front() == 0) {
+                    --dir;
+                } else {
+                    ++dir;
+                }
+                unit.io.pop_front();
+                if (dir < 0) {
+                    dir = 3;
+                } else if (dir > 3) {
+                    dir = 0;
+                }
+                px += dirs[dir];
+                outputs = 0;
+            }
+        } else {
+            assert(false);
+        }
+    }
+
+    int64_t min_x = std::numeric_limits<int64_t>::max(), min_y = std::numeric_limits<int64_t>::max(),
+            max_x = std::numeric_limits<int64_t>::min(), max_y = std::numeric_limits<int64_t>::min();
+    for (auto const& [px, _] : mapa) {
+        min_x = std::min(min_x, px.x);
+        min_y = std::min(min_y, px.y);
+        max_x = std::max(max_x, px.x);
+        max_y = std::max(max_y, px.y);
+    }
+
+    std::cout << "2:\n";
+    for (int64_t y = min_y; y <= max_y; ++y) {
+        for (int64_t x = min_x; x <= max_x; ++x) {
+            auto col = mapa[{x, y}];
+            if (col) {
+                std::cout << "X";
+            } else {
+                std::cout << " ";
+            }
+        }
+        std::cout << "\n";
+    }
+}
+
 int main(int argc, char* argv[])
 {
     std::string line;
@@ -294,6 +357,8 @@ int main(int argc, char* argv[])
 
     auto r1 = run_part1(unit);
     std::cout << "1: " << r1 << "\n";
+
+    run_part2(unit);
 
     return 0;
 }
