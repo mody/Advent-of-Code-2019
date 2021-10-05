@@ -51,13 +51,10 @@ struct Param
     {
         auto val = _u.get_val(_ip);
         if (_mode == '0') {
-            // std::cout << "val: " << get_val(val) << "\n";
             return _u.get_val(val);
         } else if (_mode == '1') {
-            // std::cout << "val: " << val << "\n";
             return val;
         } else if (_mode == '2') {
-            // std::cout << "val: " << get_val(relative_base + val) << "\n";
             return _u.get_val(_u.relative_base + val);
         } else {
             std::cerr << "UNKNOWN PARAMETER MODE " << _mode << " FOR GET AT " << _ip << std::endl;
@@ -95,13 +92,10 @@ int64_t Unit::get_param(int64_t _ip, char mode)
 {
     auto val = get_val(_ip);
     if (mode == '0') {
-        // std::cout << "val: " << get_val(val) << "\n";
         return get_val(val);
     } else if (mode == '1') {
-        // std::cout << "val: " << val << "\n";
         return val;
     } else if (mode == '2') {
-        // std::cout << "val: " << get_val(relative_base + val) << "\n";
         return get_val(relative_base + val);
     } else {
         std::cerr << "UNKNOWN PARAMETER MODE " << mode << " AT " << ip << std::endl;
@@ -112,7 +106,6 @@ int64_t Unit::get_param(int64_t _ip, char mode)
 void Unit::set_param(int64_t _ip, int64_t value)
 {
     program[_ip] = value;
-    // std::cout << "@" << _ip << "=" << value << "\n";
 }
 
 Ret Unit::run()
@@ -129,9 +122,6 @@ Ret Unit::run()
             Param p1{*this, ip + 1, s.at(2)};
             Param p2{*this, ip + 2, s.at(3)};
             Param p3{*this, ip + 3, s.at(4)};
-
-            // std::cout << "\nIP: " << ip << ", CMD: " << cmd << ", p1_mode: " << p1_mode << ", p2_mode: " << p2_mode
-            //           << ", rel: " << relative_base << "\n";
 
             if (cmd == "99") {
                 break;
@@ -225,6 +215,39 @@ std::ostream& operator<<(std::ostream& os, Point const& p) {
 
 using Mapa = std::unordered_map<Point, unsigned>;
 
+void dump(Mapa const& mapa)
+{
+    std::cout << "-------------------------------------------------------------------------------\n";
+    int64_t min_x = std::numeric_limits<int64_t>::max(), min_y = std::numeric_limits<int64_t>::max(),
+            max_x = std::numeric_limits<int64_t>::min(), max_y = std::numeric_limits<int64_t>::min();
+    for (auto const& [px, _] : mapa) {
+        min_x = std::min(min_x, px.x);
+        min_y = std::min(min_y, px.y);
+        max_x = std::max(max_x, px.x);
+        max_y = std::max(max_y, px.y);
+    }
+    for (int64_t y = min_y; y <= max_y; ++y) {
+        for (int64_t x = min_x; x <= max_x; ++x) {
+            auto it = mapa.find({x, y});
+            unsigned tile = 0;
+            if (it != mapa.end()) {
+                tile = it->second;
+            }
+            switch(tile) {
+            case 4: std::cout << "o"; break;
+            case 3: std::cout << "-"; break;
+            case 2: std::cout << "B"; break;
+            case 1: std::cout << "#"; break;
+            case 0:
+            default: std::cout << " ";
+            }
+        }
+        std::cout << "\n";
+    }
+    std::cout << "-------------------------------------------------------------------------------\n";
+}
+
+
 int64_t run_part1(Unit unit) {
     Mapa mapa;
 
@@ -252,13 +275,74 @@ int64_t run_part1(Unit unit) {
             assert(false);
         }
     }
+
     int64_t blocks = 0;
     for (auto const& [p, tile] : mapa) {
         if (tile == 2) { // BLOCK
             ++blocks;
         }
     }
+
     return blocks;
+}
+
+
+int64_t run_part2(Unit unit) {
+    Mapa mapa;
+
+    unit.program[0] = 2; // play for free
+
+    int64_t score = 0;
+
+    auto find = [&mapa](unsigned t) -> Point {
+        for (auto const& [px, tile] : mapa) {
+            if (tile == t) {
+                return px;
+            }
+        }
+        return {-1, -1};
+    };
+
+    for (;;) {
+        auto res = unit.run();
+        if (res == Ret::EXIT) {
+            break;
+        } else if (res == Ret::INPUT) {
+            assert(unit.io.empty());
+            Point me = find(3);
+            Point ball = find(4);
+            if (me.x > ball.x) {
+                unit.io.push_front(-1); // move left
+            } else if (me.x < ball.x) {
+                unit.io.push_front(1); // move right
+            } else {
+                unit.io.push_front(0); // joystick doesnt' move
+            }
+            // dump(mapa);
+            // std::cout << "My move: " << unit.io.front() << "\n";
+        } else if (res == Ret::OUTPUT) {
+            if (unit.io.size() < 3) {
+                continue;
+            }
+            int64_t x = unit.io.back(); unit.io.pop_back();
+            int64_t y = unit.io.back(); unit.io.pop_back();
+            int64_t tile = unit.io.back(); unit.io.pop_back();
+            assert(unit.io.empty());
+
+            Point p{x, y};
+            if (p == Point {-1, 0}) {
+                score = tile;
+            } else if (tile == 0) {
+                mapa.erase(p);
+            } else {
+                mapa[p] = static_cast<unsigned>(tile);
+            }
+        } else {
+            assert(false);
+        }
+    }
+
+    return score;
 }
 
 
@@ -284,6 +368,9 @@ int main(int argc, char* argv[])
 
     auto r1 = run_part1(unit);
     std::cout << "1: " << r1 << "\n";
+
+    auto r2 = run_part2(unit);
+    std::cout << "2: " << r2 << "\n";
 
     return 0;
 }
