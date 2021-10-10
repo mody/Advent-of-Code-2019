@@ -122,52 +122,33 @@ struct Lab {
         } while (edited);
     }
 
-    void make(Item rq)
+    int64_t make_optimized(Item rq)
     {
-        // std::cout << "Make " << rq << "\n";
         if (rq.name == "ORE") {
-            ore += rq.amount;
-            return;
+            return rq.amount;
         }
 
         int64_t& stored = storage[rq.name];
 
-        if (stored >= rq.amount) {
-            stored -= rq.amount;
-            return;
-        }
+        rq.amount -= stored;
 
         auto rqr = recipe.find(rq);
         assert(rqr != recipe.end());
 
-        for (;;) {
-            // std::cout << "still need " << rq << "\n";
+        const int64_t ratio = (rq.amount + rqr->first.amount - 1) / rqr->first.amount;
 
-            for (auto const& need : rqr->second) {
-                make(need);
-            }
-
-            stored += rqr->first.amount;
-            // std::cout << "Made " << rqr->first << " have " << *rqs << "\n";
-
-            if (stored >= rq.amount) {
-                stored -= rq.amount;
-                // std::cout << "Made " << rq << " from storage, left " << *rqs << "\n";
-                break;
-            }
-
+        int64_t ore = 0;
+        for (auto const& need : rqr->second) {
+            ore += make_optimized({need.name, need.amount * ratio});
         }
-    }
 
-    void clear()
-    {
-        storage.clear();
-        ore = 0;
+        stored = rqr->first.amount * ratio - rq.amount;
+
+        return ore;
     }
 
     const Recipe recipe;
     std::unordered_map<std::string, int64_t> storage;
-    int64_t ore = 0;
 };
 
 int64_t part1(Recipe const& rec)
@@ -175,35 +156,32 @@ int64_t part1(Recipe const& rec)
     Items queue;
     queue.push_front({"FUEL", 1});
 
-    bool edited = false;
-
     Lab lab(rec);
 
+    bool edited = false;
     do {
         lab.optimize(queue);
         edited = lab.compress(queue);
     } while (edited);
 
+    int64_t ore = 0;
     for(auto const& i : queue) {
-        lab.make(i);
+        ore += lab.make_optimized(i);
     }
 
-    // std::cout << "Done\n";
-
-    return lab.ore;
+    return ore;
 }
 
 
 int64_t part2(Recipe const& rec)
 {
-    int64_t one = 0;
+    int64_t one = 0, two = 0;
+
     {
         Lab lab(rec);
 
         Items queue;
         queue.push_front({"FUEL", 1});
-
-        std::cout << queue.front();
 
         bool edited = false;
         do {
@@ -212,19 +190,16 @@ int64_t part2(Recipe const& rec)
         } while (edited);
 
         for (auto const& i : queue) {
-            lab.make(i);
+            one += lab.make_optimized(i);
         }
 
-        std::cout << " needs " << lab.ore << std::endl;
-        one = lab.ore;
+        std::cout << " needs " << one << std::endl;
     }
 
     Lab lab(rec);
 
     Items queue;
     queue.push_front({"FUEL", 1000000000000 / one});
-
-    std::cout << queue.front();
 
     bool edited = false;
     do {
@@ -233,12 +208,12 @@ int64_t part2(Recipe const& rec)
     } while (edited);
 
     for (auto const& i : queue) {
-        lab.make(i);
+        two += lab.make_optimized(i);
     }
 
-    std::cout << " needs " << lab.ore << std::endl;
+    std::cout << " needs " << two << std::endl;
 
-    return (1000000000000./one)*(1000000000000. / lab.ore);
+    return (1000000000000./one)*(1000000000000. / two);
     // print(int(int(1000000000000 / one_fuel)*(1000000000000 / calculate_ore(int(1000000000000 / one_fuel)))))
 
     return 0;
