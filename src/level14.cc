@@ -15,11 +15,6 @@ struct Item {
     }
 };
 
-std::ostream& operator<<(std::ostream& os, Item const& i) {
-    std::cout << "(" << i.name << ", " << i.amount << ")";
-    return os;
-}
-
 template<>
 struct std::hash<Item>
 {
@@ -34,6 +29,11 @@ struct std::hash<Item>
 
 using Items = std::deque<Item>;
 using Recipe = std::unordered_map<Item, Items>;
+
+std::ostream& operator<<(std::ostream& os, Item const& i) {
+    std::cout << "(" << i.name << ", " << i.amount << ")";
+    return os;
+}
 
 std::ostream& operator<<(std::ostream& os, Items const& is) {
     std::cout << "[ ";
@@ -58,8 +58,6 @@ struct Lab {
 
     bool compress(Items& queue) const
     {
-        // std::cout << "Compress " << queue << "\n";
-
         bool edit = false;
 
         std::sort(queue.begin(), queue.end(), [](Item const& a, Item const& b) { return a.name < b.name; });
@@ -75,7 +73,6 @@ struct Lab {
                 ++i2;
             }
         }
-        // std::cout << "Compressed " << queue << "\n";
         return edit;
     }
 
@@ -84,8 +81,6 @@ struct Lab {
         bool edited = false;
 
         do {
-            // std::cout << "\nSolving " << queue << "\n";
-
             Items q2;
 
             for (auto qit = queue.begin(); qit != queue.end(); ++qit) {
@@ -97,24 +92,18 @@ struct Lab {
                     continue;  // can't expand more
                 }
 
-                // std::cout << "Can replace " << rq << "?";
-
                 if (rq.amount < it->first.amount || rq.amount % it->first.amount) {
                     q2.push_back(rq);
-                    // std::cout << " - no\n";
                     continue;
                 }
 
                 unsigned mul = rq.amount / it->first.amount;
-                // std::cout << " - yes x" << mul << "\n";
 
                 for (Item item : it->second) {
                     item.amount *= mul;
                     q2.push_back(std::move(item));
                 }
             }
-
-            // std::cout << "Solved " << q2 << "\n";
 
             edited = (q2 != queue);
             queue = std::move(q2);
@@ -175,13 +164,12 @@ int64_t part1(Recipe const& rec)
 
 int64_t part2(Recipe const& rec)
 {
-    int64_t one = 0, two = 0;
-
+    auto computeOre = [&rec](int64_t value) -> int64_t
     {
         Lab lab(rec);
 
         Items queue;
-        queue.push_front({"FUEL", 1});
+        queue.push_front({"FUEL", value});
 
         bool edited = false;
         do {
@@ -189,34 +177,27 @@ int64_t part2(Recipe const& rec)
             edited = lab.compress(queue);
         } while (edited);
 
+        int64_t ore = 0;
         for (auto const& i : queue) {
-            one += lab.make_optimized(i);
+            ore += lab.make_optimized(i);
         }
+        return ore;
+    };
 
-        std::cout << " needs " << one << std::endl;
+    int64_t first = 1, last = 100000000;
+    int64_t it = 0;
+
+    for (int64_t count = (last - first); count > 0;) {
+        it = first;
+        int64_t step = count / 2;
+        it += step;
+        if (computeOre(it) < 1000000000000) {
+            first = ++it;
+            count -= step + 1;
+        } else
+            count = step;
     }
-
-    Lab lab(rec);
-
-    Items queue;
-    queue.push_front({"FUEL", 1000000000000 / one});
-
-    bool edited = false;
-    do {
-        lab.optimize(queue);
-        edited = lab.compress(queue);
-    } while (edited);
-
-    for (auto const& i : queue) {
-        two += lab.make_optimized(i);
-    }
-
-    std::cout << " needs " << two << std::endl;
-
-    return (1000000000000./one)*(1000000000000. / two);
-    // print(int(int(1000000000000 / one_fuel)*(1000000000000 / calculate_ore(int(1000000000000 / one_fuel)))))
-
-    return 0;
+    return first - 1;
 }
 
 int main()
