@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <deque>
+#include <fstream>
 #include <iostream>
 #include <list>
 #include <map>
@@ -300,6 +301,7 @@ void dump(Mapa const& mapa)
                 tile = it->second;
             }
             switch (tile) {
+            case 5: std::cout << "O"; break;
             case 4: std::cout << "!"; break;
             case 3: std::cout << " "; break;
             case 2: std::cout << "o"; break;
@@ -341,7 +343,9 @@ void run(Unit unit)
     std::deque<Point> work_queue;
 
     auto me = Point{0, 0};
-    mapa.insert({me, 0}).first->second = 4;
+    mapa.insert({me, 0}).first->second = 3;
+
+    Point leak {me};
 
     for (bool stop = false; !stop;) {
         // std::cout << "Trying " << me << "\n";
@@ -369,6 +373,7 @@ void run(Unit unit)
                 break;
             case 2: // hole
                 std::cout << "1: " << (trail.size() + 1) << std::endl;
+                leak = me;
                 work_queue.push_front(me);
                 break;
             default: assert(false);
@@ -421,8 +426,44 @@ void run(Unit unit)
         }
     }
 
-    dump(mapa);
-    std::cout << std::endl;
+    // dump(mapa);
+    // std::cout << std::endl;
+
+    trail.clear();
+    assert(work_queue.empty());
+
+    work_queue.push_back(leak);
+    unsigned minutes = 0;
+
+    for (;; ++minutes) {
+        // std::cout << "minutes: " << minutes << ", work_queue.size: " << work_queue.size() << std::endl;
+        std::deque<Point> next_q;
+
+        while (!work_queue.empty()) {
+            me = work_queue.front();
+            work_queue.pop_front();
+
+            mapa[me] = 5;
+
+            for (auto DIR : {Direction::NORTH, Direction::SOUTH, Direction::EAST, Direction::WEST}) {
+                me += DIR;
+                if (mapa.count(me) == 0 || mapa[me] != 3) {
+                    me += DIR.reverse();
+                    continue;
+                }
+                mapa[me] = 5;
+                next_q.push_front(me);
+                me += DIR.reverse();
+            }
+        }
+        // dump(mapa);
+        std::swap(work_queue, next_q);
+        if (work_queue.empty()) {
+            break;
+        }
+    }
+
+    std::cout << "2: " << minutes << "\n";
 
     return;
 }
