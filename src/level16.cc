@@ -2,18 +2,9 @@
 #include <cstring>
 #include <iostream>
 #include <iterator>
-#include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_queue.h>
-#include <vector>
-
 #include <tbb/concurrent_vector.h>
-#include <tbb/parallel_for.h>
-
-#include <chrono>
-
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
+#include <vector>
 
 size_t to_int(char c)
 {
@@ -30,7 +21,8 @@ char to_char(size_t num)
 
 struct PatternIterator
 {
-    enum OP {
+    enum OP
+    {
         MINUS = -1,
         SKIP = 0,
         PLUS = 1,
@@ -48,28 +40,27 @@ struct PatternIterator
     }
 
 
-    bool end() const noexcept {
-        // std::cout << "\tAtEnd? " << (input_pos >= size) << "\n";
+    bool end() const noexcept
+    {
         return input_pos >= size;
     }
 
-    std::pair<size_t, OP> get() const noexcept {
+    std::pair<size_t, OP> get() const noexcept
+    {
         switch ((pattern_pos / repeat) % 4) {
-        case 0: // skip1
-        case 2: // skip2
-            // std::cout << "\tpattern_pos: " << pattern_pos << " is SKIP\n";
+        case 0:  // skip1
+        case 2:  // skip2
             return {input_pos, SKIP};
-        case 1: // plus
-            // std::cout << "\tpattern_pos: " << pattern_pos << " is PLUS\n";
+        case 1:  // plus
             return {input_pos, PLUS};
-        case 3: // minus
-            // std::cout << "\tpattern_pos: " << pattern_pos << " is MINUS\n";
+        case 3:  // minus
             return {input_pos, MINUS};
         };
         assert(false);
     }
 
-    bool next() noexcept {
+    bool next() noexcept
+    {
         assert(get().second != SKIP);
         ++input_pos;
         ++pattern_pos;
@@ -98,44 +89,54 @@ protected:
 std::string process(std::string signal, size_t offset = 0)
 {
     const auto sig_size = signal.size();
-    std::cout << "Processing signal of length: " << sig_size << " from offset: " << offset << "\n";
 
     for (auto& c : signal) {
         c = to_int(c);
     }
 
     for (unsigned iteration = 0; iteration < 100; ++iteration) {
-        std::cout << "iteration: " << iteration;
-        const auto t1 = high_resolution_clock::now();
+        std::string new_signal(signal.begin(), signal.end());
 
-        tbb::concurrent_vector<char> new_signal(signal.begin(), signal.end());
+        for (size_t index = 0; index < sig_size; ++index) {
+            PatternIterator pi(index, sig_size);
+            long long num = 0;
+            do {
+                auto it = pi.get();
+                num += signal.at(it.first) * it.second;
+            } while (pi.next());
 
-        auto processor = [&](const tbb::blocked_range<size_t>& r) {
-            for (size_t index = r.begin(); index != r.end(); ++index) {
-                // std::cout << "Index: " << index << "; signal: " << signal << "\n";
-                PatternIterator pi(index, sig_size);
-                long long num = 0;
-                do {
-                    auto it = pi.get();
-                    // std::cout << "\t(" << it.first << "; " << it.second << "): " << to_int(signal.at(it.first)) << " * "
-                    //           << it.second << std::endl;
-                    num += signal.at(it.first) * it.second;
-                } while (pi.next());
+            char& c = new_signal[index];
+            c = (std::abs(num) % 10);
+        }
 
-                char& c = new_signal[index];
-                c = (std::abs(num) % 10);
-                // std::cout << "num: " << num << "; c: " << c << "\n";
-            }
-        };
+        std::swap(signal, new_signal);
+    }
 
-        tbb::parallel_for(tbb::blocked_range<size_t>(offset, sig_size), processor);
-        // processor(tbb::blocked_range<size_t>(offset, sig_size));
+    for (auto& c : signal) {
+        c = to_char(c);
+    }
+    return signal;
+}
 
-        signal = std::string(new_signal.begin(), new_signal.end());
+std::string process2(std::string signal, size_t offset)
+{
+    const auto sig_size = signal.size();
 
-        const auto t2 = high_resolution_clock::now();
-        const auto duration = duration_cast<milliseconds>(t2 - t1);
-        std::cout << " took " << duration.count() << "ms\n";
+    for (auto& c : signal) {
+        c = to_int(c);
+    }
+
+    for (unsigned iteration = 0; iteration < 100; ++iteration) {
+        std::string new_signal(signal.begin(), signal.end());
+
+        size_t num = 0;
+        for (size_t index = sig_size - 1; index >= offset; --index) {
+            num += signal.at(index);
+            char& c = new_signal[index];
+            c = num % 10;
+        }
+
+        std::swap(signal, new_signal);
     }
 
     for (auto& c : signal) {
@@ -154,17 +155,17 @@ void part_1(std::string signal)
 void part_2(std::string signal)
 {
     const unsigned long offset = std::stol(signal.substr(0, 7));
-    std::string long_signal;
 
     constexpr int MULTIPLY = 10000;
 
-    long_signal.reserve(MULTIPLY*signal.size());
+    std::string long_signal;
+    long_signal.reserve(MULTIPLY * signal.size());
 
-    for (unsigned i=0; i < MULTIPLY; ++i) {
+    for (unsigned i = 0; i < MULTIPLY; ++i) {
         std::copy(signal.begin(), signal.end(), std::back_inserter(long_signal));
     }
 
-    long_signal = process(long_signal, offset);
+    long_signal = process2(long_signal, offset);
     std::cout << "result_2:\t" << long_signal.substr(offset, 8) << "\n";
 }
 
@@ -175,8 +176,6 @@ int main()
         std::cerr << "Missing input\n";
         return 1;
     }
-
-    std::cout << "signal: " << signal << "\n";
 
     part_1(signal);
     part_2(signal);
