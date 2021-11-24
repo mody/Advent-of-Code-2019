@@ -8,6 +8,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <list>
 #include <map>
 #include <string>
@@ -240,11 +241,6 @@ struct Point
         y += d.get_dy();
         return *this;
     }
-
-    // int64_t distance(Point const& o) const {
-    //     // manhattan distance
-    //     return std::abs(x - o.x) + std::abs(y - o.y);
-    // }
 };
 
 namespace std {
@@ -260,6 +256,15 @@ struct hash<Point>
         return seed;
     }
 };
+    std::ostream& operator<<(std::ostream& os, Ret const& r)
+    {
+        switch (r) {
+        case Ret::EXIT: os << "EXIT"; break;
+        case Ret::INPUT: os << "INPUT"; break;
+        case Ret::OUTPUT: os << "OUTPUT"; break;
+        }
+        return os;
+    }
 
     std::ostream& operator<<(std::ostream& os, Direction const& d)
     {
@@ -303,7 +308,38 @@ void dump(Mapa const& mapa)
 }
 
 
-void run(Unit unit)
+void dump2(Mapa const& mapa)
+{
+    std::cout << "-------------------------------------------------------------------------------\n";
+    int64_t min_x = std::numeric_limits<int64_t>::max(), min_y = std::numeric_limits<int64_t>::max(),
+            max_x = std::numeric_limits<int64_t>::min(), max_y = std::numeric_limits<int64_t>::min();
+    for (auto const& [px, _] : mapa) {
+        min_x = std::min(min_x, px.x);
+        min_y = std::min(min_y, px.y);
+        max_x = std::max(max_x, px.x);
+        max_y = std::max(max_y, px.y);
+    }
+    for (int64_t y = min_y; y <= max_y; ++y) {
+        char cnt = '1';
+        for (int64_t x = min_x; x <= max_x; ++x) {
+            auto it = mapa.find({x, y});
+            if (it == mapa.end()) {
+                std::cout << " ";
+                cnt = '1';
+                continue;
+            }
+            std::cout << cnt;
+            if (++cnt > '9') {
+                cnt = '0';
+            }
+        }
+        std::cout << "\n";
+    }
+    std::cout << "-------------------------------------------------------------------------------\n";
+}
+
+
+void run1(Unit unit)
 {
     Mapa mapa;
     Point me {0, 0}, start {0, 0};
@@ -336,6 +372,8 @@ void run(Unit unit)
         }
     };
 
+    dump(mapa);
+
     long sum = 0;
 
     auto check_neighbours = [&mapa](Point const& me) -> int {
@@ -354,8 +392,6 @@ void run(Unit unit)
         }
         return neighbours;
     };
-
-    dump(mapa);
 
     int64_t min_x = std::numeric_limits<int64_t>::max(), min_y = std::numeric_limits<int64_t>::max(),
             max_x = std::numeric_limits<int64_t>::min(), max_y = std::numeric_limits<int64_t>::min();
@@ -379,6 +415,68 @@ void run(Unit unit)
     std::cout << "1: " << sum << "\n";
 }
 
+void run2(Unit unit)
+{
+    assert(unit.program.at(0) == 1);
+    unit.program.at(0) = 2;
+
+    Mapa mapa;
+    Point me {0, 0}, start {0, 0};
+
+    Ret res;
+
+    for(;;) {
+        res = unit.run();
+        if (res == Ret::OUTPUT) {
+            assert(unit.io.size() == 1);
+            switch ((char)unit.io.front()) {
+            case '.':
+                ++me.x;
+                break;
+            case '\xa':
+                ++me.y;
+                me.x = 0;
+                break;
+            case '#':
+                mapa.insert({me, (char)unit.io.front()});
+                ++me.x;
+                break;
+            case '^':
+                mapa.insert({me, (char)unit.io.front()});
+                start = me;
+                ++me.x;
+                break;
+            }
+            unit.io.clear();
+        } else {
+            break;
+        }
+    };
+
+    const std::string feed = {"B,A,B,C,B,A,B,C,A,C\xa"
+                              "L,8,R,10,R,10,R,6\xa"
+                              "R,4,L,12,L,8,R,4\xa"
+                              "R,4,R,10,L,12\xa"
+                              "n\xa"};
+
+    int64_t last;
+
+    for (auto const& c : feed) {
+        assert(res == Ret::INPUT);
+        unit.io.push_front(c);
+        res = unit.run();
+        if (res == Ret::INPUT) {
+            continue;
+        }
+        while (res == Ret::OUTPUT) {
+            last = unit.io.front();
+            unit.io.clear();
+            res = unit.run();
+        }
+    }
+
+    std::cout << "2: " << last << "\n";
+}
 
 int main(int argc, char* argv[])
 {
@@ -400,7 +498,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    run(unit);
+    run1(unit);
+    run2(unit);
 
 
     return 0;
