@@ -65,3 +65,6 @@ target_compile_features(level15 PRIVATE cxx_std_17)
 add_executable(level16 src/level16.cc)
 #  target_link_libraries(level16 PRIVATE TBB::tbb)
 target_compile_features(level16 PRIVATE cxx_std_17)
+
+add_executable(level17 src/level17.cc)
+target_compile_features(level17 PRIVATE cxx_std_17)
