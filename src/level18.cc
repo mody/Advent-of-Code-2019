@@ -27,6 +27,10 @@ struct Mapa
         for (auto c : line) {
             data.push_back(c);
         }
+        auto idx = data.find('@');
+        if (idx != std::string::npos) {
+            std::tie(me_x, me_y) = index_to_xy(idx);
+        }
     }
 
     void dump() const
@@ -61,6 +65,7 @@ struct Mapa
     {
         CoordType origin = data.find('@');
         assert(origin != data.npos);
+        assert(origin == xy_to_index(me_x, me_y));
 
         using EdgeWeightProp = boost::property<boost::edge_weight_t, unsigned>;
         using Graph = boost::adjacency_list<
@@ -68,11 +73,7 @@ struct Mapa
             EdgeWeightProp>;
         using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
 
-        Graph g;
-
-        for (size_t idx = 0; idx < data.size(); ++idx) {
-            (void)add_vertex(g);
-        }
+        Graph g(data.size());
 
         auto add_edge = [&](Vertex from, Mapa::CoordType x, Mapa::CoordType y) {
             const auto c = get(x, y);
@@ -150,11 +151,15 @@ struct Mapa
 
         data[me] = '.';
         data[key] = '@';
+
+        std::tie(me_x, me_y) = index_to_xy(key);
     }
 
     friend size_t hash_value(Mapa const& mapa) {
         size_t seed = 0;
-        boost::hash_combine(seed, mapa.data);
+        // boost::hash_combine(seed, mapa.data);
+        boost::hash_combine(seed, mapa.me_x);
+        boost::hash_combine(seed, mapa.me_y);
         boost::hash_combine(seed, mapa.owned_keys);
         return seed;
     }
@@ -163,7 +168,8 @@ struct Mapa
     {
         assert(max_x == o.max_x);
         assert(max_y == o.max_y);
-        return data == o.data && owned_keys == o.owned_keys;
+        // return data == o.data && owned_keys == o.owned_keys;
+        return me_x == o.me_x && me_y == o.me_y && owned_keys == o.owned_keys;
     }
 
 protected:
@@ -184,6 +190,7 @@ protected:
         data[door] = '.';
     }
 
+    CoordType me_x = 0, me_y = 0;
     CoordType max_x = 0, max_y = 0;
     std::string data;
     unsigned owned_keys = 0;
@@ -264,7 +271,7 @@ int part1(Mapa mapa)
         }
     }
 
-    std::cout << "States: " << states.size() << "\n";
+    std::cout << "States: " << states.size() << std::endl;
 
     auto dist_map = boost::get(boost::vertex_distance, g);
 
