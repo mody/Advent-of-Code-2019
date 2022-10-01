@@ -187,7 +187,9 @@ struct Point
 {
     int64_t x = 0, y = 0;
 
-    constexpr Point(int64_t x_, int64_t y_) noexcept
+    Point() = default;
+
+    Point(int64_t x_, int64_t y_) noexcept
         : x {x_}
         , y {y_}
     { }
@@ -262,13 +264,13 @@ void run1(Unit unit)
     for (unsigned y = 0; y < 50; ++y) {
         for (unsigned x = 0; x < 50; ++x) {
             Unit u2 = unit;
-            u2.io.push_back(x);
             u2.io.push_back(y);
+            u2.io.push_back(x);
             auto res = u2.run();
             assert(res == Ret::OUTPUT);
             const auto out = u2.io.front();
             if (out) {
-                mapa.insert({{x, y}, '0' + out});
+                mapa.insert({{x, y}, '#'});
             }
         }
     }
@@ -276,8 +278,119 @@ void run1(Unit unit)
     std::cout << "1: " << mapa.size() << std::endl;
 }
 
-void run2(Unit unit)
+void run2_a(Unit const& unit, const unsigned RECT_SIZE)
 {
+    Mapa mapa;
+
+    auto processPoint = [&](Point const& p) -> bool {
+        Unit u2 = unit;
+        u2.io.push_back(p.y);
+        u2.io.push_back(p.x);
+        auto res = u2.run();
+        assert(res == Ret::OUTPUT);
+        const auto out = u2.io.front();
+        if (out) {
+            mapa.insert({p, '#'});
+        }
+        return !!out;
+    };
+
+    Point p1 {}, p0 {};
+
+    if (processPoint(p1)) {
+        p0 = p1;
+    }
+
+    for (;;) {
+        ++p1.x;
+        ++p1.y;
+        bool has_first = false;
+        for (unsigned y = 0; y <= p1.y; ++y) {
+            const Point px{p1.x, y};
+            if (processPoint(px)) {
+                if (!has_first) {
+                    p0 = px;
+                    has_first = true;
+                } else if (has_first) {
+                    // this is the first empty after a beam, we can stop here
+                    break;
+                }
+            }
+        }
+
+        const Point px{p0.x - (RECT_SIZE - 1), p0.y + (RECT_SIZE - 1)};
+
+        if (mapa.contains(px)) {
+            // for (unsigned y = 0; y < RECT_SIZE; ++y) {
+            //     for (unsigned x = 0; x < RECT_SIZE; ++x) {
+            //         mapa[{p0.x - x, p0.y + y}] = 'O';
+            //     }
+            // }
+            p0 = {p0.x - (RECT_SIZE - 1), p0.y};
+            // mapa.at(p0) = 'X';
+            break;
+        }
+    }
+
+    // dump(mapa);
+    std::cout << "2: " << (p0.x * 10000 + p0.y) << ", " << p0 << std::endl;
+
+    // 11340700 WRONG!
+    // 11330699 (-1, -1) from the previous, still WRONG!
+}
+
+
+void run2_b(Unit const& unit, const unsigned RECT_SIZE)
+{
+    Mapa mapa;
+
+    constexpr unsigned MAX_SIZE = 2000;
+    // constexpr unsigned MAX_SIZE = 200;
+
+    for (unsigned y = 0; y < MAX_SIZE; ++y) {
+        bool beam = false;
+        for (unsigned x = 0; x < MAX_SIZE; ++x) {
+            Unit u2 = unit;
+            u2.io.push_back(y);
+            u2.io.push_back(x);
+            auto res = u2.run();
+            assert(res == Ret::OUTPUT);
+            const auto out = u2.io.front();
+            if (out) {
+                mapa.insert({{x, y}, '#'});
+                beam = true;
+            } else if (beam) {
+                // this is the first empty after a beam, we can stop here
+                break;
+            }
+        }
+    }
+
+    for (unsigned x = 0; x < MAX_SIZE; ++x) {
+        for (unsigned y = 0; y < MAX_SIZE; ++y) {
+            Point p0 {x, y};
+            if (!mapa.contains(p0)) {
+                continue;
+            }
+            assert(mapa.at(p0) == '#');
+
+            const Point px {p0.x - (RECT_SIZE - 1), p0.y + (RECT_SIZE - 1)};
+
+            if (mapa.contains(px)) {
+                // for (unsigned y = 0; y < RECT_SIZE; ++y) {
+                //     for (unsigned x = 0; x < RECT_SIZE; ++x) {
+                //         mapa[{p0.x - x, p0.y + y}] = 'O';
+                //     }
+                // }
+                p0 = {p0.x - (RECT_SIZE - 1), p0.y};
+                // mapa.at(p0) = 'X';
+                // dump(mapa);
+                std::cout << "2: " << (p0.x * 10000 + p0.y) << ", " << p0 << std::endl;
+                return;
+            }
+        }
+    }
+
 }
 
 int main(int argc, char* argv[])
@@ -301,6 +414,8 @@ int main(int argc, char* argv[])
     }
 
     run1(unit);
+    // run2_a(unit, 10);
+    run2_b(unit, 100);
 
     return 0;
 }
