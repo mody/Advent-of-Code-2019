@@ -231,9 +231,7 @@ std::ostream& operator<<(std::ostream& os, Point const& p)
 
 using Mapa = std::unordered_map<Point, unsigned char>;
 
-void dump(Mapa const& mapa)
-{
-    std::cout << "-------------------------------------------------------------------------------\n";
+std::tuple<int64_t,int64_t,int64_t,int64_t> mapa_min_max(Mapa const& mapa) {
     int64_t min_x = std::numeric_limits<int64_t>::max(), min_y = std::numeric_limits<int64_t>::max(),
             max_x = std::numeric_limits<int64_t>::min(), max_y = std::numeric_limits<int64_t>::min();
     for (auto const& [px, _] : mapa) {
@@ -242,6 +240,13 @@ void dump(Mapa const& mapa)
         max_x = std::max(max_x, px.x);
         max_y = std::max(max_y, px.y);
     }
+    return std::tie(min_x, min_y, max_x, max_y);
+}
+
+void dump(Mapa const& mapa)
+{
+    std::cout << "-------------------------------------------------------------------------------\n";
+    auto const& [min_x, min_y, max_x, max_y] = mapa_min_max(mapa);
     for (int64_t y = min_y; y <= max_y; ++y) {
         for (int64_t x = min_x; x <= max_x; ++x) {
             auto it = mapa.find({x, y});
@@ -257,7 +262,7 @@ void dump(Mapa const& mapa)
 }
 
 
-void run1(Unit unit)
+void run1(Unit const& unit)
 {
     Mapa mapa;
 
@@ -272,6 +277,8 @@ void run1(Unit unit)
             if (out) {
                 mapa.insert({{x, y}, '#'});
             }
+            res = u2.run();
+            assert(res == Ret::EXIT);
         }
     }
 
@@ -292,6 +299,8 @@ void run2_a(Unit const& unit, const unsigned RECT_SIZE)
         if (out) {
             mapa.insert({p, '#'});
         }
+        res = u2.run();
+        assert(res == Ret::EXIT);
         return !!out;
     };
 
@@ -304,39 +313,45 @@ void run2_a(Unit const& unit, const unsigned RECT_SIZE)
     for (;;) {
         ++p1.x;
         ++p1.y;
-        bool has_first = false;
+
+        for (unsigned x = 0; x <= p1.x; ++x) {
+            processPoint({x, p1.y});
+        }
         for (unsigned y = 0; y <= p1.y; ++y) {
-            const Point px{p1.x, y};
-            if (processPoint(px)) {
-                if (!has_first) {
-                    p0 = px;
-                    has_first = true;
-                } else if (has_first) {
-                    // this is the first empty after a beam, we can stop here
-                    break;
-                }
+            processPoint({p1.x, y});
+        }
+
+        auto const& [min_x, min_y, max_x, max_y] = mapa_min_max(mapa);
+
+        for (unsigned x = 0; x <= max_y; ++x) {
+            if (mapa.contains({x, max_y})) {
+                p0 = {x, max_y};
+                break;
             }
         }
 
-        const Point px{p0.x - (RECT_SIZE - 1), p0.y + (RECT_SIZE - 1)};
+        // dump(mapa);
 
-        if (mapa.contains(px)) {
+        // Hardcoded for the max_y > max_x slope!
+        const Point pz {p0.x + (RECT_SIZE - 1), p0.y - (RECT_SIZE - 1)};
+
+        if (mapa.contains(pz)) {
             // for (unsigned y = 0; y < RECT_SIZE; ++y) {
             //     for (unsigned x = 0; x < RECT_SIZE; ++x) {
-            //         mapa[{p0.x - x, p0.y + y}] = 'O';
+            //         mapa[{p0.x + x, p0.y - y}] = 'O';
             //     }
             // }
-            p0 = {p0.x - (RECT_SIZE - 1), p0.y};
+
+            // Hardcoded for the max_y > max_x slope!
+            p0 = {p0.x, p0.y - (RECT_SIZE - 1)};
             // mapa.at(p0) = 'X';
             break;
         }
+        assert (!mapa.contains(pz));
     }
 
     // dump(mapa);
     std::cout << "2: " << (p0.x * 10000 + p0.y) << ", " << p0 << std::endl;
-
-    // 11340700 WRONG!
-    // 11330699 (-1, -1) from the previous, still WRONG!
 }
 
 
@@ -345,7 +360,6 @@ void run2_b(Unit const& unit, const unsigned RECT_SIZE)
     Mapa mapa;
 
     constexpr unsigned MAX_SIZE = 2000;
-    // constexpr unsigned MAX_SIZE = 200;
 
     for (unsigned y = 0; y < MAX_SIZE; ++y) {
         bool beam = false;
@@ -414,8 +428,8 @@ int main(int argc, char* argv[])
     }
 
     run1(unit);
-    // run2_a(unit, 10);
-    run2_b(unit, 100);
+    run2_a(unit, 100);
+    // run2_b(unit, 100);
 
     return 0;
 }
