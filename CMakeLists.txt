@@ -16,59 +16,40 @@ find_package(Boost 1.67.0 COMPONENTS unit_test_framework REQUIRED)
 include_directories(src ${Boost_INCLUDE_DIR} ${TBB_DIR})
 
 add_executable(level1 src/level1.cc)
-target_compile_features(level1 PRIVATE cxx_std_17)
-
-add_executable(level2 src/level2.cc)
-target_compile_features(level2 PRIVATE cxx_std_17)
 
 add_executable(level3 src/level3.cc)
-target_compile_features(level3 PRIVATE cxx_std_17)
 
 add_executable(level4 src/level4.cc)
-target_compile_features(level4 PRIVATE cxx_std_17)
 
 add_executable(level5 src/level5.cc)
-target_compile_features(level5 PRIVATE cxx_std_17)
 
 add_executable(level6_1 src/level6_1.cc)
-target_compile_features(level6_1 PRIVATE cxx_std_17)
 
 add_executable(level6_2 src/level6_2.cc)
-target_compile_features(level6_2 PRIVATE cxx_std_17)
 
 add_executable(level7 src/level7.cc)
-target_compile_features(level7 PRIVATE cxx_std_17)
 
 add_executable(level8 src/level8.cc)
-target_compile_features(level8 PRIVATE cxx_std_17)
 
 add_executable(level9 src/level9.cc)
-target_compile_features(level9 PRIVATE cxx_std_17)
 
 add_executable(level10 src/level10.cc)
-target_compile_features(level10 PRIVATE cxx_std_17)
 
 add_executable(level11 src/level11.cc)
-target_compile_features(level11 PRIVATE cxx_std_17)
 
 add_executable(level12 src/level12.cc)
-target_compile_features(level12 PRIVATE cxx_std_17)
 
 add_executable(level13 src/level13.cc)
-target_compile_features(level13 PRIVATE cxx_std_17)
 
 add_executable(level14 src/level14.cc)
-target_compile_features(level14 PRIVATE cxx_std_17)
 
 add_executable(level15 src/level15.cc)
-target_compile_features(level15 PRIVATE cxx_std_17)
 
 add_executable(level16 src/level16.cc)
 #  target_link_libraries(level16 PRIVATE TBB::tbb)
-target_compile_features(level16 PRIVATE cxx_std_17)
 
 add_executable(level17 src/level17.cc)
-target_compile_features(level17 PRIVATE cxx_std_17)
 
 add_executable(level18 src/level18.cc)
-target_compile_features(level18 PRIVATE cxx_std_17)
+
+add_executable(level19 src/level19.cc)
