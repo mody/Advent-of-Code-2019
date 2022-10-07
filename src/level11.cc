@@ -314,11 +314,12 @@ void run_part2(Unit unit) {
 
     int64_t min_x = std::numeric_limits<int64_t>::max(), min_y = std::numeric_limits<int64_t>::max(),
             max_x = std::numeric_limits<int64_t>::min(), max_y = std::numeric_limits<int64_t>::min();
-    for (auto const& [px, _] : mapa) {
-        min_x = std::min(min_x, px.x);
-        min_y = std::min(min_y, px.y);
-        max_x = std::max(max_x, px.x);
-        max_y = std::max(max_y, px.y);
+
+    for (auto const& [p, _] : mapa) {
+        min_x = std::min(min_x, p.x);
+        min_y = std::min(min_y, p.y);
+        max_x = std::max(max_x, p.x);
+        max_y = std::max(max_y, p.y);
     }
 
     std::cout << "2:\n";
