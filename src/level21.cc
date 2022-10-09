@@ -193,10 +193,8 @@ std::ostream& operator<<(std::ostream& os, Ret const& r)
 }  // namespace std
 
 
-void run1(Unit unit)
+void run_springscript(Unit unit, const std::string& feed)
 {
-    const std::string feed = {"NOT C T\nNOT B J\nOR T J\nNOT A T\nOR T J\nAND D J\nWALK\n"};
-
     Ret res = unit.run();
     while (res == Ret::OUTPUT) {
         std::cout << (char)unit.io.front();
@@ -233,6 +231,18 @@ void run1(Unit unit)
     std::cout << std::endl;
 }
 
+void run1(Unit unit)
+{
+    const std::string feed = {"OR C J\nAND B J\nAND A J\nNOT J J\nAND D J\nWALK\n"};
+    run_springscript(unit, feed);
+}
+
+void run2(Unit unit)
+{
+    const std::string feed = {"OR C J\nAND B J\nAND A J\nNOT J J\nAND D J\nOR H T\nOR E T\nAND T J\nRUN\n"};
+    run_springscript(unit, feed);
+}
+
 int main(int argc, char* argv[])
 {
     std::string line;
@@ -254,7 +264,7 @@ int main(int argc, char* argv[])
     }
 
     run1(unit);
-    // run2(unit);
+    run2(unit);
 
 
     return 0;
