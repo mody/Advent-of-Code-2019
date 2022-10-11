@@ -57,3 +57,5 @@ add_executable(level19 src/level19.cc)
 add_executable(level20 src/level20.cc)
 
 add_executable(level21 src/level21.cc)
+
+add_executable(level23 src/level23.cc)
