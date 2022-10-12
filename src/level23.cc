@@ -230,6 +230,73 @@ void run1(Unit unit)
 }
 
 
+void run2(Unit unit)
+{
+    std::map<unsigned, Unit> network;
+    for (unsigned i = 0; i < 50; ++i) {
+        auto [it, _] = network.insert({i, unit});
+        it->second.input.push_back(i); // 1st input is the NIC id
+    }
+
+    int64_t NAT_X = -1, NAT_Y = -1;
+    int64_t NAT_X2 = 0, NAT_Y2 = 0;
+
+    for(;;) {
+
+        unsigned hungry = 0;
+
+        for (auto& [id, nic] : network) {
+            auto ret = nic.run();
+            if (ret == Ret::INPUT) {
+                nic.input.push_front(-1);
+                ++hungry;
+            } else if (ret == Ret::OUTPUT) {
+                const auto dst = nic.output.front();
+                nic.output.pop_front();
+
+                ret = nic.run(); // expect X
+                assert(ret == Ret::OUTPUT);
+                const auto X = nic.output.front();
+                nic.output.pop_front();
+
+
+                ret = nic.run(); // expect Y
+                assert(ret == Ret::OUTPUT);
+                const auto Y = nic.output.front();
+                nic.output.pop_front();
+
+                if (dst == 255) {
+                    NAT_X = X;
+                    NAT_Y = Y;
+                } else {
+                    assert(dst < 50);
+                    auto& target = network.at(dst);
+                    target.input.push_back(X);
+                    target.input.push_back(Y);
+                }
+            } else {
+                assert(ret == Ret::EXIT);
+                std::cout << "END of " << id << " ? " << std::endl;
+            }
+        }
+
+        if (hungry == 50) {
+            if (NAT_X == NAT_X2 && NAT_Y == NAT_Y2) {
+                std::cout << "2: " << NAT_Y << std::endl;
+                return;
+            }
+
+            auto& target = network.at(0);
+            target.input.push_back(NAT_X);
+            target.input.push_back(NAT_Y);
+
+            NAT_X2 = NAT_X;
+            NAT_Y2 = NAT_Y;
+        }
+    }
+}
+
+
 int main(int argc, char* argv[])
 {
     std::string line;
@@ -251,7 +318,7 @@ int main(int argc, char* argv[])
     }
 
     run1(unit);
-    // run2(unit);
+    run2(unit);
 
 
     return 0;
