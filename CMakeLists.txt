@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.11)
 project(AOC2019)
 
 #  set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address")
-set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O2")
+set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O0")
+#  set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O2")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # find_package(PkgConfig)
@@ -59,3 +60,5 @@ add_executable(level20 src/level20.cc)
 add_executable(level21 src/level21.cc)
 
 add_executable(level23 src/level23.cc)
+
+add_executable(level24 src/level24.cc)
