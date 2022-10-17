@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <boost/config.hpp>
 #include <boost/container_hash/hash.hpp>
 
@@ -10,6 +11,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 
 struct Direction
@@ -298,10 +300,10 @@ void part1(Mapa mapa)
 
 
 struct Level;
-using LevelPtr = std::shared_ptr<Level>;
+using LevelPtr = std::unique_ptr<Level>;
 
 
-struct Level : public std::enable_shared_from_this<Level>
+struct Level
 {
     Level() noexcept {
         for (int64_t y = 0; y <= MAX_Y; ++y) {
@@ -462,21 +464,21 @@ struct Level : public std::enable_shared_from_this<Level>
         }
     }
 
-    void add_outer(LevelPtr l) noexcept
+    void add_outer(Level* l) noexcept
     {
         assert(!outer);
         outer = l;
-        l->inner = shared_from_this();
+        l->inner = this;
     }
 
-    void add_inner(LevelPtr l) noexcept
+    void add_inner(Level* l) noexcept
     {
         assert(!inner);
         inner = l;
-        l->outer = shared_from_this();
+        l->outer = this;
     }
 
-    static LevelPtr find_top(LevelPtr me) noexcept
+    static Level* find_top(Level* me) noexcept
     {
         while(me->outer) {
             me = me->outer;
@@ -484,7 +486,7 @@ struct Level : public std::enable_shared_from_this<Level>
         return me;
     }
 
-    static LevelPtr find_bottom(LevelPtr me) noexcept
+    static Level* find_bottom(Level* me) noexcept
     {
         while(me->inner) {
             me = me->inner;
@@ -492,7 +494,7 @@ struct Level : public std::enable_shared_from_this<Level>
         return me;
     }
 
-    static void top_to_bottom(LevelPtr me, std::function<void(LevelPtr)>&& op) noexcept
+    static void top_to_bottom(Level* me, std::function<void(Level*)>&& op) noexcept
     {
         assert(me);
         do {
@@ -504,10 +506,10 @@ struct Level : public std::enable_shared_from_this<Level>
     void dump() const noexcept
     {
         std::cout << "--------------------------------------------------------------------\n";
-        std::cout << std::hex << "outer: 0x" << outer.get() << "\n";
+        std::cout << std::hex << "outer: 0x" << outer << "\n";
         std::cout << std::hex << "me: " << this << "\n";
         std::cout << to_string(m1) << "\n";
-        std::cout << std::hex << "inner: 0x" << inner.get() << "\n";
+        std::cout << std::hex << "inner: 0x" << inner << "\n";
         std::cout << "--------------------------------------------------------------------" << std::endl;
     }
 
@@ -525,8 +527,8 @@ private:
         return cnt;
     }
 
-    LevelPtr outer;
-    LevelPtr inner;
+    Level* outer {};
+    Level* inner {};
     Mapa m1, m2;
 
     static constexpr int64_t MIN_X = 0, MAX_X = 4, INNER_X = 2;
@@ -534,31 +536,48 @@ private:
 };
 
 
+struct Levels
+{
+    Level* add_level() noexcept {
+        levels.push_back(std::make_unique<Level>());
+        return levels.back().get();
+    }
+
+    Level* add_level(Mapa _m) noexcept {
+        levels.push_back(std::make_unique<Level>(std::move(_m)));
+        return levels.back().get();
+    }
+
+private:
+    std::vector<LevelPtr> levels;
+};
+
+
 void part2(Mapa const& mapa)
 {
-    auto level0 = std::make_shared<Level>(mapa);
+    Levels levels;
 
-    // std::cout << "level0: " << std::dec << level0->bug_count() << std::endl;
-
-    assert(!level0->empty());
-
-    LevelPtr top = level0, bottom = level0;
+    Level *top = levels.add_level(std::move(mapa)), *bottom = top;
 
     for (unsigned i = 0; i < 200; ++i) {
 
-        top = Level::find_top(top);
-        bottom = Level::find_bottom(top);
+        // top = Level::find_top(top);
+        // bottom = Level::find_bottom(top);
 
         if (!top->empty()) {
-            top->add_outer(std::make_shared<Level>());
+            Level* l = levels.add_level();
+            top->add_outer(l);
+            top = l;
         }
 
         if (!bottom->empty()) {
-            bottom->add_inner(std::make_shared<Level>());
+            Level* l = levels.add_level();
+            bottom->add_inner(l);
+            bottom = l;
         }
 
-        top = Level::find_top(top);
-        bottom = Level::find_bottom(top);
+        // top = Level::find_top(top);
+        // bottom = Level::find_bottom(top);
 
         // std::cout << "BEFORE\n";
         // Level::top_to_bottom(top, [](LevelPtr me) {
@@ -567,24 +586,24 @@ void part2(Mapa const& mapa)
         // });
 
 
-        Level::top_to_bottom(top, [](LevelPtr me) {
+        Level::top_to_bottom(top, [](Level* me) {
             assert(me);
             me->step();
         });
 
-        Level::top_to_bottom(top, [](LevelPtr me) {
+        Level::top_to_bottom(top, [](Level* me) {
             assert(me);
             me->swap_maps();
         });
 
         unsigned bug_count {};
-        Level::top_to_bottom(top, [&bug_count](LevelPtr me) {
+        Level::top_to_bottom(top, [&bug_count](Level* me) {
             assert(me);
             bug_count += me->bug_count();
         });
 
         // std::cout << "AFTER\n";
-        // Level::top_to_bottom(top, [](LevelPtr me) {
+        // Level::top_to_bottom(top, [](Level* me) {
         //     assert(me);
         //     me->dump();
         // });
@@ -596,13 +615,13 @@ void part2(Mapa const& mapa)
     // top = Level::find_top(top);
     // auto bottom = Level::find_bottom(top);
 
-    // Level::top_to_bottom(top, [](LevelPtr me) {
+    // Level::top_to_bottom(top, [](Level* me) {
     //     assert(me);
     //     me->dump();
     // });
 
     unsigned bug_count {};
-    Level::top_to_bottom(top, [&bug_count](LevelPtr me) {
+    Level::top_to_bottom(top, [&bug_count](Level* me) {
         assert(me);
         bug_count += me->bug_count();
     });
