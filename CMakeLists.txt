@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.11)
 project(AOC2019)
 
 #  set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address")
-set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O0")
-#  set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O2")
+#  set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O0")
+set(CMAKE_CXX_FLAGS "-Wall -Wshadow -std=c++20 -Wpedantic -fno-omit-frame-pointer -ggdb3 -O2")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # find_package(PkgConfig)
@@ -17,6 +17,8 @@ find_package(Boost 1.67.0 COMPONENTS unit_test_framework REQUIRED)
 include_directories(src ${Boost_INCLUDE_DIR} ${TBB_DIR})
 
 add_executable(level1 src/level1.cc)
+
+add_executable(level2 src/level2.cc)
 
 add_executable(level3 src/level3.cc)
 
