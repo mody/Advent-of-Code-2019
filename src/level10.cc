@@ -1,10 +1,12 @@
+#include <algorithm>
 #include <boost/container_hash/hash.hpp>
 #include <cassert>
 #include <cmath>
+#include <deque>
 #include <iostream>
+#include <map>
 #include <string>
 #include <unordered_set>
-#include <vector>
 
 constexpr long A = 20;
 constexpr long B = A/2;

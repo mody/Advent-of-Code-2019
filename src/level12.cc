@@ -1,3 +1,4 @@
+#include <array>
 #include <boost/container_hash/hash.hpp>
 #include <cassert>
 #include <iostream>
